@@ -1,606 +1,2149 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Sistema de gestão e navegação para clientes">
+    <meta name="theme-color" content="#020617">
+    
+    <title>CONECTA CLIENTES PRO</title>
+    
+    <!-- Preconnect para performance -->
+    <link rel="preconnect" href="[unpkg.com](https://unpkg.com)">
+    <link rel="preconnect" href="[cdnjs.cloudflare.com](https://cdnjs.cloudflare.com)">
+    
+    <!-- CSS externo -->
+    <link rel="stylesheet" href="[unpkg.com](https://unpkg.com/leaflet@1.9.4/dist/leaflet.css)" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="anonymous">
+    <link rel="stylesheet" href="[unpkg.com](https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css)">
+    <link rel="stylesheet" href="[cdnjs.cloudflare.com](https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css)" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous">
+    
+    <style>
+        /* ============================================
+           CSS CUSTOM PROPERTIES (Design Tokens)
+           ============================================ */
+        :root {
+            /* Cores */
+            --color-bg-primary: #020617;
+            --color-bg-secondary: #0f172a;
+            --color-bg-tertiary: #1e293b;
+            --color-success: #22c55e;
+            --color-info: #3b82f6;
+            --color-danger: #ef4444;
+            --color-warning: #f59e0b;
+            --color-text-primary: #f8fafc;
+            --color-text-secondary: #cbd5e1;
+            --color-text-muted: #94a3b8;
+            --color-border: #334155;
+            
+            /* Espaçamento */
+            --spacing-xs: 4px;
+            --spacing-sm: 8px;
+            --spacing-md: 12px;
+            --spacing-lg: 16px;
+            --spacing-xl: 20px;
+            --spacing-2xl: 24px;
+            
+            /* Bordas */
+            --radius-sm: 8px;
+            --radius-md: 10px;
+            --radius-lg: 12px;
+            --radius-xl: 14px;
+            
+            /* Sombras */
+            --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+            --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.3);
+            --shadow-lg: 0 10px 20px rgba(0, 0, 0, 0.4);
+            
+            /* Transições */
+            --transition-fast: 150ms ease;
+            --transition-normal: 300ms ease;
+            
+            /* Layout */
+            --header-height: 70px;
+            --sidebar-width: 400px;
+            
+            /* Z-index */
+            --z-dropdown: 100;
+            --z-modal: 200;
+            --z-toast: 300;
+        }
 
-<title>CONECTA CLIENTES PRO</title>
+        /* ============================================
+           RESET E BASE
+           ============================================ */
+        *, *::before, *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-<link rel="stylesheet"
-href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+        html {
+            font-size: 16px;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
 
-<link rel="stylesheet"
-href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css"/>
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, var(--color-bg-primary), var(--color-bg-secondary));
+            color: var(--color-text-primary);
+            line-height: 1.5;
+            min-height: 100vh;
+            overflow: hidden;
+        }
 
-<link rel="stylesheet"
-href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
+        /* Focus visible para acessibilidade */
+        :focus-visible {
+            outline: 2px solid var(--color-info);
+            outline-offset: 2px;
+        }
 
-<style>
+        /* ============================================
+           HEADER
+           ============================================ */
+        .header {
+            height: var(--header-height);
+            background: rgba(2, 6, 23, 0.95);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 var(--spacing-2xl);
+            border-bottom: 1px solid var(--color-border);
+            position: sticky;
+            top: 0;
+            z-index: var(--z-dropdown);
+        }
 
-:root{
-    --bg:#020617;
-    --card:#0f172a;
-    --card2:#1e293b;
-    --green:#22c55e;
-    --blue:#3b82f6;
-    --red:#ef4444;
-    --text:#f8fafc;
-    --border:#334155;
-}
+        .header__logo {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-md);
+            font-size: 1.5rem;
+            font-weight: 700;
+            letter-spacing: -0.025em;
+        }
 
-*{
-    margin:0;
-    padding:0;
-    box-sizing:border-box;
-}
+        .header__logo-icon {
+            color: var(--color-success);
+        }
 
-body{
-    background:linear-gradient(135deg,#020617,#0f172a);
-    color:var(--text);
-    font-family:Arial, Helvetica, sans-serif;
-    overflow:hidden;
-}
+        .header__logo-accent {
+            color: var(--color-success);
+        }
 
-header{
-    height:70px;
-    background:rgba(2,6,23,.9);
-    backdrop-filter:blur(10px);
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    padding:0 25px;
-    border-bottom:1px solid var(--border);
-}
+        .header__clock {
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            font-size: 1rem;
+            color: var(--color-text-secondary);
+            background: var(--color-bg-tertiary);
+            padding: var(--spacing-sm) var(--spacing-lg);
+            border-radius: var(--radius-md);
+            border: 1px solid var(--color-border);
+        }
 
-header h1{
-    font-size:24px;
-}
+        /* ============================================
+           LAYOUT PRINCIPAL
+           ============================================ */
+        .main {
+            display: flex;
+            height: calc(100vh - var(--header-height));
+        }
 
-header span{
-    color:var(--green);
-}
+        /* ============================================
+           SIDEBAR
+           ============================================ */
+        .sidebar {
+            width: var(--sidebar-width);
+            background: rgba(15, 23, 42, 0.98);
+            border-right: 1px solid var(--color-border);
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding: var(--spacing-xl);
+            scroll-behavior: smooth;
+        }
 
-.main{
-    display:flex;
-    height:calc(100vh - 70px);
-}
+        .sidebar::-webkit-scrollbar {
+            width: 6px;
+        }
 
-.sidebar{
-    width:380px;
-    background:rgba(15,23,42,.95);
-    border-right:1px solid var(--border);
-    overflow-y:auto;
-    padding:20px;
-}
+        .sidebar::-webkit-scrollbar-track {
+            background: transparent;
+        }
 
-.sidebar::-webkit-scrollbar{
-    width:8px;
-}
+        .sidebar::-webkit-scrollbar-thumb {
+            background: var(--color-border);
+            border-radius: 3px;
+        }
 
-.sidebar::-webkit-scrollbar-thumb{
-    background:#334155;
-    border-radius:10px;
-}
+        .sidebar::-webkit-scrollbar-thumb:hover {
+            background: var(--color-text-muted);
+        }
 
-.card{
-    background:var(--card2);
-    padding:15px;
-    border-radius:14px;
-    margin-bottom:15px;
-    border:1px solid #334155;
-    transition:.3s;
-}
+        /* ============================================
+           COMPONENTES - CARDS
+           ============================================ */
+        .card {
+            background: var(--color-bg-tertiary);
+            padding: var(--spacing-lg);
+            border-radius: var(--radius-xl);
+            margin-bottom: var(--spacing-lg);
+            border: 1px solid var(--color-border);
+            transition: transform var(--transition-normal), box-shadow var(--transition-normal);
+        }
 
-.card:hover{
-    transform:translateY(-2px);
-    box-shadow:0 0 20px rgba(0,0,0,.3);
-}
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
 
-.title{
-    margin-bottom:12px;
-    font-size:18px;
-    font-weight:bold;
-}
+        .card__title {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            margin-bottom: var(--spacing-lg);
+            font-size: 1.125rem;
+            font-weight: 600;
+        }
 
-input{
-    width:100%;
-    margin-bottom:10px;
-    padding:12px;
-    border:none;
-    border-radius:10px;
-    background:#0f172a;
-    color:white;
-    border:1px solid #334155;
-    outline:none;
-}
+        .card__title-icon {
+            color: var(--color-success);
+        }
 
-input:focus{
-    border-color:var(--green);
-}
+        /* ============================================
+           COMPONENTES - STATS
+           ============================================ */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: var(--spacing-md);
+            margin-bottom: var(--spacing-lg);
+        }
 
-button{
-    border:none;
-    padding:12px;
-    border-radius:10px;
-    cursor:pointer;
-    color:white;
-    font-weight:bold;
-    transition:.3s;
-}
+        .stat-card {
+            background: var(--color-bg-secondary);
+            padding: var(--spacing-lg);
+            border-radius: var(--radius-lg);
+            text-align: center;
+            border: 1px solid var(--color-border);
+            transition: border-color var(--transition-fast);
+        }
 
-button:hover{
-    transform:scale(1.02);
-}
+        .stat-card:hover {
+            border-color: var(--color-success);
+        }
 
-.btn-green{
-    background:var(--green);
-}
+        .stat-card__label {
+            font-size: 0.75rem;
+            color: var(--color-text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: var(--spacing-xs);
+        }
 
-.btn-blue{
-    background:var(--blue);
-}
+        .stat-card__value {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--color-success);
+        }
 
-.btn-red{
-    background:var(--red);
-}
+        .stat-card__value--warning {
+            color: var(--color-warning);
+        }
 
-.btn-full{
-    width:100%;
-    margin-top:8px;
-}
+        .stat-card__value--danger {
+            color: var(--color-danger);
+        }
 
-.cliente{
-    background:#0f172a;
-    padding:15px;
-    border-radius:12px;
-    margin-top:10px;
-    border:1px solid #334155;
-}
+        /* ============================================
+           COMPONENTES - FORMS
+           ============================================ */
+        .form-group {
+            margin-bottom: var(--spacing-md);
+        }
 
-.cliente h3{
-    margin-bottom:5px;
-}
+        .form-label {
+            display: block;
+            font-size: 0.875rem;
+            color: var(--color-text-secondary);
+            margin-bottom: var(--spacing-xs);
+        }
 
-.cliente p{
-    color:#cbd5e1;
-    margin-bottom:10px;
-}
+        .form-input {
+            width: 100%;
+            padding: var(--spacing-md);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-md);
+            background: var(--color-bg-secondary);
+            color: var(--color-text-primary);
+            font-size: 1rem;
+            transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+        }
 
-.actions{
-    display:flex;
-    gap:8px;
-}
+        .form-input::placeholder {
+            color: var(--color-text-muted);
+        }
 
-.actions button{
-    flex:1;
-}
+        .form-input:hover {
+            border-color: var(--color-text-muted);
+        }
 
-#map{
-    flex:1;
-}
+        .form-input:focus {
+            border-color: var(--color-success);
+            box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.15);
+            outline: none;
+        }
 
-.stats{
-    display:grid;
-    grid-template-columns:1fr 1fr;
-    gap:10px;
-    margin-bottom:15px;
-}
+        .form-input--error {
+            border-color: var(--color-danger);
+        }
 
-.stat{
-    background:#0f172a;
-    padding:15px;
-    border-radius:12px;
-    text-align:center;
-    border:1px solid #334155;
-}
+        .form-input--error:focus {
+            box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15);
+        }
 
-.stat h2{
-    color:var(--green);
-}
+        .form-error {
+            font-size: 0.75rem;
+            color: var(--color-danger);
+            margin-top: var(--spacing-xs);
+            display: none;
+        }
 
-.search{
-    margin-bottom:15px;
-}
+        .form-error--visible {
+            display: block;
+        }
 
-.toast{
-    position:fixed;
-    bottom:20px;
-    right:20px;
-    background:#22c55e;
-    color:white;
-    padding:15px 20px;
-    border-radius:12px;
-    opacity:0;
-    transform:translateY(30px);
-    transition:.4s;
-    z-index:9999;
-}
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--spacing-md);
+        }
 
-.toast.show{
-    opacity:1;
-    transform:translateY(0);
-}
+        /* ============================================
+           COMPONENTES - BUTTONS
+           ============================================ */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--spacing-sm);
+            padding: var(--spacing-md) var(--spacing-lg);
+            border: none;
+            border-radius: var(--radius-md);
+            font-size: 0.9375rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform var(--transition-fast), box-shadow var(--transition-fast), opacity var(--transition-fast);
+            text-decoration: none;
+            white-space: nowrap;
+        }
 
-@media(max-width:900px){
+        .btn:hover:not(:disabled) {
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
 
-    .main{
-        flex-direction:column;
-    }
+        .btn:active:not(:disabled) {
+            transform: translateY(0);
+        }
 
-    .sidebar{
-        width:100%;
-        height:50%;
-    }
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
 
-    #map{
-        height:50%;
-    }
-}
+        .btn--full {
+            width: 100%;
+        }
 
-</style>
+        .btn--success {
+            background: var(--color-success);
+            color: white;
+        }
+
+        .btn--info {
+            background: var(--color-info);
+            color: white;
+        }
+
+        .btn--danger {
+            background: var(--color-danger);
+            color: white;
+        }
+
+        .btn--ghost {
+            background: transparent;
+            border: 1px solid var(--color-border);
+            color: var(--color-text-primary);
+        }
+
+        .btn--ghost:hover:not(:disabled) {
+            background: var(--color-bg-tertiary);
+        }
+
+        .btn--icon {
+            padding: var(--spacing-sm);
+            min-width: 40px;
+            min-height: 40px;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: var(--spacing-sm);
+            margin-top: var(--spacing-md);
+        }
+
+        /* ============================================
+           COMPONENTES - SEARCH
+           ============================================ */
+        .search-wrapper {
+            position: relative;
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: var(--spacing-md);
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--color-text-muted);
+            pointer-events: none;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: var(--spacing-md);
+            padding-left: 42px;
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-md);
+            background: var(--color-bg-secondary);
+            color: var(--color-text-primary);
+            font-size: 1rem;
+            transition: border-color var(--transition-fast);
+        }
+
+        .search-input:focus {
+            border-color: var(--color-success);
+            outline: none;
+        }
+
+        .search-clear {
+            position: absolute;
+            right: var(--spacing-sm);
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: var(--color-text-muted);
+            cursor: pointer;
+            padding: var(--spacing-xs);
+            opacity: 0;
+            transition: opacity var(--transition-fast);
+        }
+
+        .search-input:not(:placeholder-shown) + .search-clear {
+            opacity: 1;
+        }
+
+        /* ============================================
+           COMPONENTES - CLIENT LIST
+           ============================================ */
+        .client-list {
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-md);
+        }
+
+        .client-list__empty {
+            text-align: center;
+            padding: var(--spacing-2xl);
+            color: var(--color-text-muted);
+        }
+
+        .client-list__empty-icon {
+            font-size: 3rem;
+            margin-bottom: var(--spacing-md);
+            opacity: 0.5;
+        }
+
+        .client-card {
+            background: var(--color-bg-secondary);
+            padding: var(--spacing-lg);
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--color-border);
+            transition: border-color var(--transition-fast), transform var(--transition-fast);
+        }
+
+        .client-card:hover {
+            border-color: var(--color-success);
+            transform: translateX(4px);
+        }
+
+        .client-card__header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .client-card__name {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--color-text-primary);
+        }
+
+        .client-card__badge {
+            font-size: 0.625rem;
+            padding: 2px 6px;
+            border-radius: 4px;
+            background: rgba(34, 197, 94, 0.15);
+            color: var(--color-success);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .client-card__reference {
+            font-size: 0.875rem;
+            color: var(--color-text-secondary);
+            margin-bottom: var(--spacing-md);
+        }
+
+        .client-card__coords {
+            font-size: 0.75rem;
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            color: var(--color-text-muted);
+            background: var(--color-bg-primary);
+            padding: var(--spacing-sm) var(--spacing-md);
+            border-radius: var(--radius-sm);
+            margin-bottom: var(--spacing-md);
+        }
+
+        .client-card__actions {
+            display: flex;
+            gap: var(--spacing-sm);
+        }
+
+        .client-card__actions .btn {
+            flex: 1;
+        }
+
+        /* ============================================
+           MAP
+           ============================================ */
+        .map-container {
+            flex: 1;
+            position: relative;
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+
+        .map-controls {
+            position: absolute;
+            top: var(--spacing-lg);
+            right: var(--spacing-lg);
+            z-index: var(--z-dropdown);
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-sm);
+        }
+
+        .map-controls .btn {
+            background: var(--color-bg-tertiary);
+            border: 1px solid var(--color-border);
+            box-shadow: var(--shadow-md);
+        }
+
+        /* ============================================
+           TOAST NOTIFICATIONS
+           ============================================ */
+        .toast-container {
+            position: fixed;
+            bottom: var(--spacing-xl);
+            right: var(--spacing-xl);
+            z-index: var(--z-toast);
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-sm);
+        }
+
+        .toast {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-md);
+            padding: var(--spacing-lg) var(--spacing-xl);
+            border-radius: var(--radius-lg);
+            background: var(--color-bg-tertiary);
+            border: 1px solid var(--color-border);
+            box-shadow: var(--shadow-lg);
+            transform: translateX(120%);
+            opacity: 0;
+            transition: transform var(--transition-normal), opacity var(--transition-normal);
+            max-width: 360px;
+        }
+
+        .toast--visible {
+            transform: translateX(0);
+            opacity: 1;
+        }
+
+        .toast--success {
+            border-color: var(--color-success);
+        }
+
+        .toast--success .toast__icon {
+            color: var(--color-success);
+        }
+
+        .toast--error {
+            border-color: var(--color-danger);
+        }
+
+        .toast--error .toast__icon {
+            color: var(--color-danger);
+        }
+
+        .toast--info {
+            border-color: var(--color-info);
+        }
+
+        .toast--info .toast__icon {
+            color: var(--color-info);
+        }
+
+        .toast__icon {
+            font-size: 1.25rem;
+        }
+
+        .toast__content {
+            flex: 1;
+        }
+
+        .toast__title {
+            font-weight: 600;
+            margin-bottom: 2px;
+        }
+
+        .toast__message {
+            font-size: 0.875rem;
+            color: var(--color-text-secondary);
+        }
+
+        .toast__close {
+            background: none;
+            border: none;
+            color: var(--color-text-muted);
+            cursor: pointer;
+            padding: var(--spacing-xs);
+            transition: color var(--transition-fast);
+        }
+
+        .toast__close:hover {
+            color: var(--color-text-primary);
+        }
+
+        /* ============================================
+           LOADING STATE
+           ============================================ */
+        .loading-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(2, 6, 23, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: var(--z-modal);
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity var(--transition-normal), visibility var(--transition-normal);
+        }
+
+        .loading-overlay--visible {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .spinner {
+            width: 48px;
+            height: 48px;
+            border: 3px solid var(--color-border);
+            border-top-color: var(--color-success);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* ============================================
+           MODAL / CONFIRM DIALOG
+           ============================================ */
+        .modal-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(4px);
+            z-index: var(--z-modal);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity var(--transition-normal), visibility var(--transition-normal);
+        }
+
+        .modal-backdrop--visible {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal {
+            background: var(--color-bg-tertiary);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-xl);
+            padding: var(--spacing-2xl);
+            max-width: 400px;
+            width: 90%;
+            transform: scale(0.9);
+            transition: transform var(--transition-normal);
+        }
+
+        .modal-backdrop--visible .modal {
+            transform: scale(1);
+        }
+
+        .modal__icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto var(--spacing-lg);
+            font-size: 1.5rem;
+        }
+
+        .modal__icon--danger {
+            background: rgba(239, 68, 68, 0.15);
+            color: var(--color-danger);
+        }
+
+        .modal__title {
+            text-align: center;
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .modal__message {
+            text-align: center;
+            color: var(--color-text-secondary);
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .modal__actions {
+            display: flex;
+            gap: var(--spacing-md);
+        }
+
+        .modal__actions .btn {
+            flex: 1;
+        }
+
+        /* ============================================
+           RESPONSIVE
+           ============================================ */
+        @media (max-width: 1024px) {
+            .sidebar {
+                width: 340px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .main {
+                flex-direction: column;
+            }
+
+            .sidebar {
+                width: 100%;
+                height: 55%;
+                border-right: none;
+                border-bottom: 1px solid var(--color-border);
+            }
+
+            .map-container {
+                height: 45%;
+            }
+
+            .header {
+                padding: 0 var(--spacing-lg);
+            }
+
+            .header__logo {
+                font-size: 1.25rem;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .header__clock {
+                display: none;
+            }
+
+            .client-card__actions {
+                flex-wrap: wrap;
+            }
+
+            .toast {
+                max-width: calc(100vw - 40px);
+            }
+        }
+
+        /* ============================================
+           LEAFLET CUSTOMIZATION
+           ============================================ */
+        .leaflet-routing-container {
+            background: var(--color-bg-tertiary) !important;
+            color: var(--color-text-primary) !important;
+            border: 1px solid var(--color-border) !important;
+            border-radius: var(--radius-lg) !important;
+            box-shadow: var(--shadow-lg) !important;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .leaflet-routing-alt {
+            padding: var(--spacing-md) !important;
+        }
+
+        .leaflet-routing-alt:hover {
+            background: var(--color-bg-secondary) !important;
+        }
+
+        .leaflet-popup-content-wrapper {
+            background: var(--color-bg-tertiary);
+            color: var(--color-text-primary);
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--color-border);
+        }
+
+        .leaflet-popup-tip {
+            background: var(--color-bg-tertiary);
+        }
+
+        .leaflet-popup-content {
+            margin: var(--spacing-md);
+        }
+
+        /* ============================================
+           PRINT STYLES
+           ============================================ */
+        @media print {
+            .sidebar,
+            .header,
+            .toast-container,
+            .map-controls {
+                display: none !important;
+            }
+
+            .main {
+                height: auto;
+            }
+
+            .map-container {
+                height: 100vh;
+            }
+        }
+    </style>
 </head>
 
 <body>
+    <!-- Header -->
+    <header class="header" role="banner">
+        <h1 class="header__logo">
+            <i class="fa-solid fa-satellite-dish header__logo-icon" aria-hidden="true"></i>
+            CONECTA <span class="header__logo-accent">CLIENTES PRO</span>
+        </h1>
+        <time class="header__clock" id="clock" aria-live="polite" aria-label="Hora atual"></time>
+    </header>
 
-<header>
-    <h1><i class="fa-solid fa-satellite-dish"></i> CONECTA <span>CLIENTES PRO</span></h1>
+    <!-- Main Content -->
+    <main class="main" role="main">
+        <!-- Sidebar -->
+        <aside class="sidebar" role="complementary" aria-label="Painel de controle">
+            <!-- Stats -->
+            <section class="stats-grid" aria-label="Estatísticas">
+                <article class="stat-card">
+                    <p class="stat-card__label">Total Clientes</p>
+                    <p class="stat-card__value" id="totalClients" aria-live="polite">0</p>
+                </article>
+                <article class="stat-card">
+                    <p class="stat-card__label">GPS Status</p>
+                    <p class="stat-card__value stat-card__value--warning" id="gpsStatus" aria-live="polite">OFF</p>
+                </article>
+            </section>
 
-    <div id="hora"></div>
-</header>
+            <!-- Add Client Form -->
+            <section class="card" aria-labelledby="form-title">
+                <h2 class="card__title" id="form-title">
+                    <i class="fa-solid fa-user-plus card__title-icon" aria-hidden="true"></i>
+                    Adicionar Cliente
+                </h2>
 
-<div class="main">
+                <form id="clientForm" novalidate>
+                    <div class="form-group">
+                        <label for="clientName" class="form-label">Nome do cliente *</label>
+                        <input 
+                            type="text" 
+                            id="clientName" 
+                            class="form-input" 
+                            placeholder="Ex: João Silva"
+                            required
+                            maxlength="100"
+                            autocomplete="name"
+                        >
+                        <p class="form-error" id="clientNameError">Nome é obrigatório</p>
+                    </div>
 
-    <div class="sidebar">
+                    <div class="form-group">
+                        <label for="clientRef" class="form-label">Referência *</label>
+                        <input 
+                            type="text" 
+                            id="clientRef" 
+                            class="form-input" 
+                            placeholder="Ex: Próximo ao mercado"
+                            required
+                            maxlength="200"
+                        >
+                        <p class="form-error" id="clientRefError">Referência é obrigatória</p>
+                    </div>
 
-        <div class="stats">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="clientLat" class="form-label">Latitude *</label>
+                            <input 
+                                type="text" 
+                                id="clientLat" 
+                                class="form-input" 
+                                placeholder="-25.4284"
+                                required
+                                inputmode="decimal"
+                                pattern="-?[0-9]*\.?[0-9]+"
+                            >
+                            <p class="form-error" id="clientLatError">Latitude inválida</p>
+                        </div>
+                        <div class="form-group">
+                            <label for="clientLon" class="form-label">Longitude *</label>
+                            <input 
+                                type="text" 
+                                id="clientLon" 
+                                class="form-input" 
+                                placeholder="-49.2733"
+                                required
+                                inputmode="decimal"
+                                pattern="-?[0-9]*\.?[0-9]+"
+                            >
+                            <p class="form-error" id="clientLonError">Longitude inválida</p>
+                        </div>
+                    </div>
 
-            <div class="stat">
-                <small>Total Clientes</small>
-                <h2 id="totalClientes">0</h2>
+                    <div class="btn-group">
+                        <button type="submit" class="btn btn--success btn--full">
+                            <i class="fa-solid fa-plus" aria-hidden="true"></i>
+                            Adicionar
+                        </button>
+                    </div>
+
+                    <div class="btn-group">
+                        <button type="button" class="btn btn--info btn--full" id="btnMyLocation">
+                            <i class="fa-solid fa-location-crosshairs" aria-hidden="true"></i>
+                            Usar Minha Localização
+                        </button>
+                    </div>
+                </form>
+            </section>
+
+            <!-- Search -->
+            <div class="search-wrapper">
+                <i class="fa-solid fa-search search-icon" aria-hidden="true"></i>
+                <input 
+                    type="search" 
+                    id="searchInput" 
+                    class="search-input" 
+                    placeholder="Buscar cliente..."
+                    aria-label="Buscar cliente"
+                >
+                <button type="button" class="search-clear" id="searchClear" aria-label="Limpar busca">
+                    <i class="fa-solid fa-times" aria-hidden="true"></i>
+                </button>
             </div>
 
-            <div class="stat">
-                <small>Status GPS</small>
-                <h2 id="gpsStatus">OFF</h2>
+            <!-- Client List -->
+            <section id="clientList" class="client-list" aria-label="Lista de clientes" role="list"></section>
+        </aside>
+
+        <!-- Map -->
+        <section class="map-container" aria-label="Mapa">
+            <div id="map" role="application" aria-label="Mapa interativo com localização dos clientes"></div>
+            
+            <div class="map-controls">
+                <button type="button" class="btn btn--icon" id="btnCenterMap" title="Centralizar mapa">
+                    <i class="fa-solid fa-expand" aria-hidden="true"></i>
+                </button>
+                <button type="button" class="btn btn--icon" id="btnClearRoute" title="Limpar rota">
+                    <i class="fa-solid fa-route" aria-hidden="true"></i>
+                </button>
             </div>
 
+            <div class="loading-overlay" id="mapLoading">
+                <div class="spinner" role="status" aria-label="Carregando"></div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer" aria-live="polite" aria-atomic="true"></div>
+
+    <!-- Confirm Modal -->
+    <div class="modal-backdrop" id="confirmModal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+        <div class="modal">
+            <div class="modal__icon modal__icon--danger">
+                <i class="fa-solid fa-trash" aria-hidden="true"></i>
+            </div>
+            <h3 class="modal__title" id="modalTitle">Confirmar exclusão</h3>
+            <p class="modal__message" id="modalMessage">Deseja realmente excluir este cliente?</p>
+            <div class="modal__actions">
+                <button type="button" class="btn btn--ghost" id="modalCancel">Cancelar</button>
+                <button type="button" class="btn btn--danger" id="modalConfirm">Excluir</button>
+            </div>
         </div>
-
-        <div class="card">
-
-            <div class="title">
-                <i class="fa-solid fa-user-plus"></i>
-                Adicionar Cliente
-            </div>
-
-            <input id="nome" placeholder="Nome do cliente">
-
-            <input id="ref" placeholder="Referência">
-
-            <input id="lat" placeholder="Latitude">
-
-            <input id="lon" placeholder="Longitude">
-
-            <button class="btn-green btn-full"
-            onclick="adicionarCliente()">
-
-                <i class="fa-solid fa-plus"></i>
-                Adicionar Cliente
-
-            </button>
-
-            <button class="btn-blue btn-full"
-            onclick="minhaLocalizacao()">
-
-                <i class="fa-solid fa-location-crosshairs"></i>
-                Minha Localização
-
-            </button>
-
-        </div>
-
-        <input class="search"
-        id="pesquisa"
-        placeholder="Pesquisar cliente..."
-        onkeyup="listarClientes()">
-
-        <div id="lista"></div>
-
     </div>
 
-    <div id="map"></div>
+    <!-- Scripts -->
+    <script src="[unpkg.com](https://unpkg.com/leaflet@1.9.4/dist/leaflet.js)" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin="anonymous"></script>
+    <script src="[unpkg.com](https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js)"></script>
 
-</div>
+    <script>
+    /**
+     * CONECTA CLIENTES PRO - Enterprise Application
+     * 
+     * Arquitetura modular com separação de responsabilidades
+     * - Storage: Persistência de dados
+     * - Validator: Validação e sanitização
+     * - Toast: Sistema de notificações
+     * - Modal: Diálogos de confirmação
+     * - Map: Gerenciamento do mapa
+     * - App: Orquestração principal
+     */
 
-<div class="toast" id="toast"></div>
+    'use strict';
 
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    // ============================================
+    // UTILITIES
+    // ============================================
 
-<script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
-
-<script>
-
-const map = L.map('map').setView([-25.11,-53.84],13);
-
-L.tileLayer(
-'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-{
-    attribution:'© OpenStreetMap'
-}).addTo(map);
-
-let clientes =
-JSON.parse(localStorage.getItem("clientes")) || [];
-
-let markers = [];
-let minhaPosicao = null;
-let controleRota = null;
-
-function toast(msg,color="#22c55e"){
-
-    const t=document.getElementById("toast");
-
-    t.innerHTML=msg;
-    t.style.background=color;
-
-    t.classList.add("show");
-
-    setTimeout(()=>{
-        t.classList.remove("show");
-    },3000);
-}
-
-function salvar(){
-    localStorage.setItem(
-        "clientes",
-        JSON.stringify(clientes)
-    );
-}
-
-function atualizarStats(){
-
-    document.getElementById("totalClientes")
-    .innerHTML=clientes.length;
-
-    document.getElementById("gpsStatus")
-    .innerHTML=minhaPosicao ? "ON" : "OFF";
-}
-
-function criarMarker(cliente,index){
-
-    const marker=L.marker([
-        cliente.latitude,
-        cliente.longitude
-    ])
-    .addTo(map)
-    .bindPopup(`
-        <b>${cliente.nome}</b><br>
-        ${cliente.referencia}<br><br>
-
-        <button onclick="navegarCliente(${index})"
-        style="background:#22c55e;color:white;padding:8px;border:none;border-radius:8px;cursor:pointer;">
-        Navegar
-        </button>
-    `);
-
-    markers.push(marker);
-}
-
-function listarClientes(){
-
-    const busca=document.getElementById("pesquisa")
-    .value.toLowerCase();
-
-    const lista=document.getElementById("lista");
-
-    lista.innerHTML="";
-
-    clientes
-    .filter(c=>
-        c.nome.toLowerCase().includes(busca) ||
-        c.referencia.toLowerCase().includes(busca)
-    )
-    .forEach((c,index)=>{
-
-        lista.innerHTML+=`
-
-        <div class="cliente">
-
-            <h3>${c.nome}</h3>
-
-            <p>${c.referencia}</p>
-
-            <small>
-            LAT: ${c.latitude}<br>
-            LON: ${c.longitude}
-            </small>
-
-            <div class="actions">
-
-                <button class="btn-green"
-                onclick="navegarCliente(${index})">
-
-                <i class="fa-solid fa-route"></i>
-
-                </button>
-
-                <button class="btn-blue"
-                onclick="focarCliente(${index})">
-
-                <i class="fa-solid fa-map-location-dot"></i>
-
-                </button>
-
-                <button class="btn-red"
-                onclick="excluirCliente(${index})">
-
-                <i class="fa-solid fa-trash"></i>
-
-                </button>
-
-            </div>
-
-        </div>
-
-        `;
-    });
-
-    atualizarStats();
-}
-
-function adicionarCliente(){
-
-    const nome=document.getElementById("nome").value;
-    const ref=document.getElementById("ref").value;
-    const lat=parseFloat(document.getElementById("lat").value);
-    const lon=parseFloat(document.getElementById("lon").value);
-
-    if(!nome || !ref || isNaN(lat) || isNaN(lon)){
-        toast("Preencha todos os campos!","#ef4444");
-        return;
-    }
-
-    const cliente={
-        nome,
-        referencia:ref,
-        latitude:lat,
-        longitude:lon
+    /**
+     * Debounce - limita execuções repetidas
+     */
+    const debounce = (fn, delay) => {
+        let timeoutId;
+        return (...args) => {
+            clearTimeout(timeoutId);
+            timeoutId = setTimeout(() => fn(...args), delay);
+        };
     };
 
-    clientes.push(cliente);
+    /**
+     * Throttle - limita frequência de execução
+     */
+    const throttle = (fn, limit) => {
+        let inThrottle;
+        return (...args) => {
+            if (!inThrottle) {
+                fn(...args);
+                inThrottle = true;
+                setTimeout(() => inThrottle = false, limit);
+            }
+        };
+    };
 
-    salvar();
-    atualizarMapa();
+    /**
+     * Gera UUID v4
+     */
+    const generateId = () => {
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+            const r = Math.random() * 16 | 0;
+            const v = c === 'x' ? r : (r & 0x3 | 0x8);
+            return v.toString(16);
+        });
+    };
 
-    document.getElementById("nome").value="";
-    document.getElementById("ref").value="";
-    document.getElementById("lat").value="";
-    document.getElementById("lon").value="";
+    /**
+     * Sanitiza string contra XSS
+     */
+    const sanitizeHTML = (str) => {
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+    };
 
-    toast("Cliente adicionado!");
-}
+    /**
+     * Escapa HTML para exibição segura
+     */
+    const escapeHTML = (str) => {
+        const escapeMap = {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#x27;',
+            '/': '&#x2F;'
+        };
+        return String(str).replace(/[&<>"'/]/g, char => escapeMap[char]);
+    };
 
-function excluirCliente(index){
+    // ============================================
+    // STORAGE MODULE
+    // ============================================
 
-    if(confirm("Deseja excluir este cliente?")){
+    const Storage = (() => {
+        const STORAGE_KEY = 'conecta_clientes_v2';
+        const STORAGE_VERSION = 2;
 
-        clientes.splice(index,1);
-
-        salvar();
-        atualizarMapa();
-
-        toast("Cliente removido!","#ef4444");
-    }
-}
-
-function focarCliente(index){
-
-    const c=clientes[index];
-
-    map.setView([c.latitude,c.longitude],16);
-}
-
-function minhaLocalizacao(){
-
-    if(!navigator.geolocation){
-        toast("GPS não suportado","#ef4444");
-        return;
-    }
-
-    navigator.geolocation.getCurrentPosition(pos=>{
-
-        const lat=pos.coords.latitude;
-        const lon=pos.coords.longitude;
-
-        minhaPosicao=L.latLng(lat,lon);
-
-        L.marker([lat,lon])
-        .addTo(map)
-        .bindPopup("📍 Você está aqui")
-        .openPopup();
-
-        map.setView([lat,lon],16);
-
-        atualizarStats();
-
-        toast("Localização ativada!");
-
-    },()=>{
-
-        toast("Erro ao obter localização","#ef4444");
-
-    });
-}
-
-function navegarCliente(index){
-
-    if(!minhaPosicao){
-
-        toast("Ative sua localização primeiro!","#ef4444");
-        return;
-    }
-
-    const c=clientes[index];
-
-    if(controleRota){
-        map.removeControl(controleRota);
-    }
-
-    controleRota=L.Routing.control({
-
-        waypoints:[
-            minhaPosicao,
-            L.latLng(c.latitude,c.longitude)
-        ],
-
-        routeWhileDragging:false,
-        addWaypoints:false,
-        draggableWaypoints:false,
-        showAlternatives:true,
-
-        lineOptions:{
-            styles:[
-                {
-                    color:'#22c55e',
-                    opacity:0.9,
-                    weight:6
+        /**
+         * Obtém dados do storage com validação
+         */
+        const getData = () => {
+            try {
+                const raw = localStorage.getItem(STORAGE_KEY);
+                if (!raw) return { version: STORAGE_VERSION, clients: [] };
+                
+                const data = JSON.parse(raw);
+                
+                // Migração de versão se necessário
+                if (!data.version || data.version < STORAGE_VERSION) {
+                    return migrateData(data);
                 }
-            ]
-        },
+                
+                return data;
+            } catch (error) {
+                console.error('Storage read error:', error);
+                return { version: STORAGE_VERSION, clients: [] };
+            }
+        };
 
-        createMarker:()=>null
+        /**
+         * Salva dados no storage
+         */
+        const setData = (data) => {
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify({
+                    ...data,
+                    version: STORAGE_VERSION,
+                    updatedAt: new Date().toISOString()
+                }));
+                return true;
+            } catch (error) {
+                console.error('Storage write error:', error);
+                return false;
+            }
+        };
 
-    }).addTo(map);
+        /**
+         * Migra dados de versões anteriores
+         */
+        const migrateData = (oldData) => {
+            // Migração da v1 (array simples) para v2 (objeto com metadados)
+            if (Array.isArray(oldData)) {
+                const clients = oldData.map(client => ({
+                    id: generateId(),
+                    name: client.nome || '',
+                    reference: client.referencia || '',
+                    latitude: client.latitude,
+                    longitude: client.longitude,
+                    createdAt: new Date().toISOString()
+                }));
+                
+                const newData = { version: STORAGE_VERSION, clients };
+                setData(newData);
+                return newData;
+            }
+            
+            return { version: STORAGE_VERSION, clients: oldData.clients || [] };
+        };
 
-    toast(`Navegando até ${c.nome}`);
-}
+        /**
+         * Exporta dados para backup
+         */
+        const exportData = () => {
+            const data = getData();
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `conecta-backup-${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        };
 
-function atualizarMapa(){
+        /**
+         * Importa dados de backup
+         */
+        const importData = async (file) => {
+            try {
+                const text = await file.text();
+                const data = JSON.parse(text);
+                
+                if (!data.clients || !Array.isArray(data.clients)) {
+                    throw new Error('Formato inválido');
+                }
+                
+                setData(data);
+                return true;
+            } catch (error) {
+                console.error('Import error:', error);
+                return false;
+            }
+        };
 
-    markers.forEach(m=>map.removeLayer(m));
+        return { getData, setData, exportData, importData };
+    })();
 
-    markers=[];
+    // ============================================
+    // VALIDATOR MODULE
+    // ============================================
 
-    clientes.forEach((c,index)=>{
-        criarMarker(c,index);
-    });
+    const Validator = (() => {
+        const rules = {
+            name: {
+                required: true,
+                minLength: 2,
+                maxLength: 100,
+                pattern: /^[\p{L}\p{N}\s\-'.]+$/u,
+                message: 'Nome deve ter 2-100 caracteres válidos'
+            },
+            reference: {
+                required: true,
+                minLength: 3,
+                maxLength: 200,
+                message: 'Referência deve ter 3-200 caracteres'
+            },
+            latitude: {
+                required: true,
+                min: -90,
+                max: 90,
+                message: 'Latitude deve estar entre -90 e 90'
+            },
+            longitude: {
+                required: true,
+                min: -180,
+                max: 180,
+                message: 'Longitude deve estar entre -180 e 180'
+            }
+        };
 
-    listarClientes();
-}
+        /**
+         * Valida um campo
+         */
+        const validateField = (field, value) => {
+            const rule = rules[field];
+            if (!rule) return { valid: true };
 
-function atualizarHora(){
+            const trimmed = typeof value === 'string' ? value.trim() : value;
 
-    const agora=new Date();
+            if (rule.required && (!trimmed && trimmed !== 0)) {
+                return { valid: false, message: `${field} é obrigatório` };
+            }
 
-    document.getElementById("hora")
-    .innerHTML=agora.toLocaleTimeString("pt-BR");
-}
+            if (typeof trimmed === 'string') {
+                if (rule.minLength && trimmed.length < rule.minLength) {
+                    return { valid: false, message: rule.message };
+                }
+                if (rule.maxLength && trimmed.length > rule.maxLength) {
+                    return { valid: false, message: rule.message };
+                }
+                if (rule.pattern && !rule.pattern.test(trimmed)) {
+                    return { valid: false, message: rule.message };
+                }
+            }
 
-setInterval(atualizarHora,1000);
+            if (typeof trimmed === 'number' || !isNaN(parseFloat(trimmed))) {
+                const num = parseFloat(trimmed);
+                if (isNaN(num)) {
+                    return { valid: false, message: rule.message };
+                }
+                if (rule.min !== undefined && num < rule.min) {
+                    return { valid: false, message: rule.message };
+                }
+                if (rule.max !== undefined && num > rule.max) {
+                    return { valid: false, message: rule.message };
+                }
+            }
 
-atualizarHora();
-atualizarMapa();
+            return { valid: true };
+        };
 
-</script>
+        /**
+         * Valida objeto cliente completo
+         */
+        const validateClient = (client) => {
+            const errors = {};
+            let isValid = true;
 
+            for (const field of Object.keys(rules)) {
+                const result = validateField(field, client[field]);
+                if (!result.valid) {
+                    errors[field] = result.message;
+                    isValid = false;
+                }
+            }
+
+            return { isValid, errors };
+        };
+
+        /**
+         * Sanitiza dados do cliente
+         */
+        const sanitizeClient = (client) => ({
+            id: client.id || generateId(),
+            name: sanitizeHTML(String(client.name || '').trim()),
+            reference: sanitizeHTML(String(client.reference || '').trim()),
+            latitude: parseFloat(client.latitude),
+            longitude: parseFloat(client.longitude),
+            createdAt: client.createdAt || new Date().toISOString()
+        });
+
+        return { validateField, validateClient, sanitizeClient };
+    })();
+
+    // ============================================
+    // TOAST MODULE
+    // ============================================
+
+    const Toast = (() => {
+        const container = document.getElementById('toastContainer');
+        const queue = [];
+        let isProcessing = false;
+
+        const icons = {
+            success: 'fa-circle-check',
+            error: 'fa-circle-xmark',
+            info: 'fa-circle-info',
+            warning: 'fa-triangle-exclamation'
+        };
+
+        /**
+         * Mostra notificação
+         */
+        const show = (message, type = 'success', title = null, duration = 4000) => {
+            const toast = document.createElement('div');
+            toast.className = `toast toast--${type}`;
+            toast.setAttribute('role', 'alert');
+            
+            toast.innerHTML = `
+                <i class="fa-solid ${icons[type]} toast__icon" aria-hidden="true"></i>
+                <div class="toast__content">
+                    ${title ? `<p class="toast__title">${escapeHTML(title)}</p>` : ''}
+                    <p class="toast__message">${escapeHTML(message)}</p>
+                </div>
+                <button type="button" class="toast__close" aria-label="Fechar">
+                    <i class="fa-solid fa-times" aria-hidden="true"></i>
+                </button>
+            `;
+
+            const closeBtn = toast.querySelector('.toast__close');
+            closeBtn.addEventListener('click', () => dismiss(toast));
+
+            container.appendChild(toast);
+
+            // Força reflow para animação
+            toast.offsetHeight;
+            toast.classList.add('toast--visible');
+
+            // Auto dismiss
+            const timeoutId = setTimeout(() => dismiss(toast), duration);
+
+            // Pausa timer no hover
+            toast.addEventListener('mouseenter', () => clearTimeout(timeoutId));
+            toast.addEventListener('mouseleave', () => {
+                setTimeout(() => dismiss(toast), 2000);
+            });
+        };
+
+        /**
+         * Remove notificação
+         */
+        const dismiss = (toast) => {
+            toast.classList.remove('toast--visible');
+            setTimeout(() => toast.remove(), 300);
+        };
+
+        /**
+         * Atalhos
+         */
+        const success = (msg, title) => show(msg, 'success', title);
+        const error = (msg, title) => show(msg, 'error', title);
+        const info = (msg, title) => show(msg, 'info', title);
+        const warning = (msg, title) => show(msg, 'warning', title);
+
+        return { show, success, error, info, warning };
+    })();
+
+    // ============================================
+    // MODAL MODULE
+    // ============================================
+
+    const Modal = (() => {
+        const backdrop = document.getElementById('confirmModal');
+        const titleEl = document.getElementById('modalTitle');
+        const messageEl = document.getElementById('modalMessage');
+        const confirmBtn = document.getElementById('modalConfirm');
+        const cancelBtn = document.getElementById('modalCancel');
+
+        let resolvePromise = null;
+
+        /**
+         * Mostra modal de confirmação
+         */
+        const confirm = (options = {}) => {
+            const {
+                title = 'Confirmar',
+                message = 'Deseja continuar?',
+                confirmText = 'Confirmar',
+                cancelText = 'Cancelar',
+                type = 'danger'
+            } = options;
+
+            titleEl.textContent = title;
+            messageEl.textContent = message;
+            confirmBtn.textContent = confirmText;
+            cancelBtn.textContent = cancelText;
+            
+            confirmBtn.className = `btn btn--${type}`;
+
+            backdrop.classList.add('modal-backdrop--visible');
+            confirmBtn.focus();
+
+            return new Promise(resolve => {
+                resolvePromise = resolve;
+            });
+        };
+
+        const handleConfirm = () => {
+            close();
+            resolvePromise?.(true);
+        };
+
+        const handleCancel = () => {
+            close();
+            resolvePromise?.(false);
+        };
+
+        const close = () => {
+            backdrop.classList.remove('modal-backdrop--visible');
+        };
+
+        // Event listeners
+        confirmBtn.addEventListener('click', handleConfirm);
+        cancelBtn.addEventListener('click', handleCancel);
+        backdrop.addEventListener('click', (e) => {
+            if (e.target === backdrop) handleCancel();
+        });
+
+        // ESC para fechar
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && backdrop.classList.contains('modal-backdrop--visible')) {
+                handleCancel();
+            }
+        });
+
+        return { confirm };
+    })();
+
+    // ============================================
+    // MAP MODULE
+    // ============================================
+
+    const MapManager = (() => {
+        let map = null;
+        let markers = [];
+        let userMarker = null;
+        let userPosition = null;
+        let routingControl = null;
+        let markerClusterGroup = null;
+
+        const DEFAULT_CENTER = [-25.11, -53.84];
+        const DEFAULT_ZOOM = 13;
+
+        const icons = {
+            client: L.divIcon({
+                className: 'custom-marker',
+                html: `<div style="
+                    width: 32px;
+                    height: 32px;
+                    background: linear-gradient(135deg, #22c55e, #16a34a);
+                    border: 3px solid white;
+                    border-radius: 50%;
+                    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                ">
+                    <i class="fa-solid fa-user" style="color: white; font-size: 14px;"></i>
+                </div>`,
+                iconSize: [32, 32],
+                iconAnchor: [16, 16],
+                popupAnchor: [0, -20]
+            }),
+            user: L.divIcon({
+                className: 'custom-marker',
+                html: `<div style="
+                    width: 40px;
+                    height: 40px;
+                    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+                    border: 3px solid white;
+                    border-radius: 50%;
+                    box-shadow: 0 2px 12px rgba(59, 130, 246, 0.5);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    animation: pulse 2s infinite;
+                ">
+                    <i class="fa-solid fa-location-dot" style="color: white; font-size: 18px;"></i>
+                </div>`,
+                iconSize: [40, 40],
+                iconAnchor: [20, 20],
+                popupAnchor: [0, -24]
+            })
+        };
+
+        // Inject pulse animation
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes pulse {
+                0%, 100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.5); }
+                50% { box-shadow: 0 0 0 15px rgba(59, 130, 246, 0); }
+            }
+        `;
+        document.head.appendChild(style);
+
+        /**
+         * Inicializa o mapa
+         */
+        const init = () => {
+            map = L.map('map', {
+                center: DEFAULT_CENTER,
+                zoom: DEFAULT_ZOOM,
+                zoomControl: true,
+                attributionControl: true
+            });
+
+            // Tile layer com fallback
+            L.tileLayer('[{s}.tile.openstreetmap.org](https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png)', {
+                attribution: '© <a href="[openstreetmap.org](https://www.openstreetmap.org/copyright)">OpenStreetMap</a>',
+                maxZoom: 19,
+                minZoom: 3
+            }).addTo(map);
+
+            // Controle de zoom personalizado
+            map.zoomControl.setPosition('bottomright');
+
+            return map;
+        };
+
+        /**
+         * Adiciona marcador de cliente
+         */
+        const addClientMarker = (client, onClick) => {
+            const marker = L.marker([client.latitude, client.longitude], {
+                icon: icons.client,
+                title: client.name
+            });
+
+            const popupContent = `
+                <div style="min-width: 180px;">
+                    <h4 style="margin: 0 0 8px; font-size: 14px; font-weight: 600;">${escapeHTML(client.name)}</h4>
+                    <p style="margin: 0 0 12px; font-size: 12px; color: #64748b;">${escapeHTML(client.reference)}</p>
+                    <button 
+                        onclick="window.App.navigateToClient('${client.id}')"
+                        style="
+                            width: 100%;
+                            padding: 8px 12px;
+                            background: #22c55e;
+                            color: white;
+                            border: none;
+                            border-radius: 6px;
+                            font-size: 12px;
+                            font-weight: 600;
+                            cursor: pointer;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            gap: 6px;
+                        "
+                    >
+                        <i class="fa-solid fa-route"></i>
+                        Navegar
+                    </button>
+                </div>
+            `;
+
+            marker.bindPopup(popupContent, {
+                closeButton: true,
+                className: 'custom-popup'
+            });
+
+            marker.addTo(map);
+            markers.push({ id: client.id, marker });
+
+            return marker;
+        };
+
+        /**
+         * Remove todos os marcadores de clientes
+         */
+        const clearClientMarkers = () => {
+            markers.forEach(({ marker }) => map.removeLayer(marker));
+            markers = [];
+        };
+
+        /**
+         * Define localização do usuário
+         */
+        const setUserLocation = (lat, lon) => {
+            userPosition = L.latLng(lat, lon);
+
+            if (userMarker) {
+                map.removeLayer(userMarker);
+            }
+
+            userMarker = L.marker([lat, lon], {
+                icon: icons.user,
+                title: 'Sua localização'
+            })
+            .addTo(map)
+            .bindPopup('<strong>📍 Você está aqui</strong>')
+            .openPopup();
+
+            map.setView([lat, lon], 16, { animate: true });
+
+            return userPosition;
+        };
+
+        /**
+         * Obtém localização atual
+         */
+        const getUserPosition = () => userPosition;
+
+        /**
+         * Centraliza em um cliente
+         */
+        const focusClient = (lat, lon) => {
+            map.setView([lat, lon], 17, { animate: true });
+        };
+
+        /**
+         * Cria rota até cliente
+         */
+        const createRoute = (client) => {
+            if (!userPosition) {
+                Toast.warning('Ative sua localização primeiro');
+                return;
+            }
+
+            // Remove rota anterior
+            clearRoute();
+
+            routingControl = L.Routing.control({
+                waypoints: [
+                    userPosition,
+                    L.latLng(client.latitude, client.longitude)
+                ],
+                routeWhileDragging: false,
+                addWaypoints: false,
+                draggableWaypoints: false,
+                showAlternatives: true,
+                fitSelectedRoutes: true,
+                lineOptions: {
+                    styles: [
+                        { color: '#22c55e', opacity: 0.9, weight: 6 }
+                    ],
+                    extendToWaypoints: true,
+                    missingRouteTolerance: 0
+                },
+                altLineOptions: {
+                    styles: [
+                        { color: '#94a3b8', opacity: 0.6, weight: 4 }
+                    ]
+                },
+                createMarker: () => null,
+                show: true,
+                collapsible: true
+            }).addTo(map);
+
+            routingControl.on('routesfound', (e) => {
+                const route = e.routes[0];
+                const distance = (route.summary.totalDistance / 1000).toFixed(1);
+                const time = Math.round(route.summary.totalTime / 60);
+                Toast.success(`Rota criada: ${distance}km, ~${time}min`);
+            });
+
+            routingControl.on('routingerror', () => {
+                Toast.error('Erro ao calcular rota');
+            });
+        };
+
+        /**
+         * Remove rota atual
+         */
+        const clearRoute = () => {
+            if (routingControl) {
+                map.removeControl(routingControl);
+                routingControl = null;
+            }
+        };
+
+        /**
+         * Ajusta viewport para mostrar todos os marcadores
+         */
+        const fitBounds = () => {
+            if (markers.length === 0) return;
+
+            const group = L.featureGroup(markers.map(m => m.marker));
+            
+            if (userMarker) {
+                group.addLayer(userMarker);
+            }
+
+            map.fitBounds(group.getBounds().pad(0.1), {
+                animate: true,
+                maxZoom: 15
+            });
+        };
+
+        return {
+            init,
+            addClientMarker,
+            clearClientMarkers,
+            setUserLocation,
+            getUserPosition,
+            focusClient,
+            createRoute,
+            clearRoute,
+            fitBounds
+        };
+    })();
+
+    // ============================================
+    // MAIN APPLICATION
+    // ============================================
+
+    const App = (() => {
+        // State
+        let clients = [];
+        
+        // DOM Elements
+        const elements = {
+            form: document.getElementById('clientForm'),
+            nameInput: document.getElementById('clientName'),
+            refInput: document.getElementById('clientRef'),
+            latInput: document.getElementById('clientLat'),
+            lonInput: document.getElementById('clientLon'),
+            searchInput: document.getElementById('searchInput'),
+            searchClear: document.getElementById('searchClear'),
+            clientList: document.getElementById('clientList'),
+            totalClients: document.getElementById('totalClients'),
+            gpsStatus: document.getElementById('gpsStatus'),
+            clock: document.getElementById('clock'),
+            btnMyLocation: document.getElementById('btnMyLocation'),
+            btnCenterMap: document.getElementById('btnCenterMap'),
+            btnClearRoute: document.getElementById('btnClearRoute'),
+            mapLoading: document.getElementById('mapLoading')
+        };
+
+        /**
+         * Inicializa aplicação
+         */
+        const init = () => {
+            // Carrega dados
+            loadClients();
+            
+            // Inicializa mapa
+            MapManager.init();
+            
+            // Renderiza clientes no mapa
+            renderMap();
+            
+            // Configura eventos
+            setupEventListeners();
+            
+            // Inicia clock
+            startClock();
+            
+            // Atualiza stats
+            updateStats();
+
+            console.log('✅ App initialized');
+        };
+
+        /**
+         * Carrega clientes do storage
+         */
+        const loadClients = () => {
+            const data = Storage.getData();
+            clients = data.clients || [];
+        };
+
+        /**
+         * Salva clientes no storage
+         */
+        const saveClients = () => {
+            Storage.setData({ clients });
+        };
+
+        /**
+         * Configura event listeners
+         */
+        const setupEventListeners = () => {
+            // Form submit
+            elements.form.addEventListener('submit', handleFormSubmit);
+
+            // Search com debounce
+            elements.searchInput.addEventListener('input', debounce(renderClientList, 300));
+            elements.searchClear.addEventListener('click', () => {
+                elements.searchInput.value = '';
+                renderClientList();
+            });
+
+            // Location button
+            elements.btnMyLocation.addEventListener('click', handleMyLocation);
+
+            // Map controls
+            elements.btnCenterMap.addEventListener('click', () => MapManager.fitBounds());
+            elements.btnClearRoute.addEventListener('click', () => {
+                MapManager.clearRoute();
+                Toast.info('Rota removida');
+            });
+
+            // Form validation em tempo real
+            ['nameInput', 'refInput', 'latInput', 'lonInput'].forEach(key => {
+                elements[key].addEventListener('blur', (e) => validateInput(e.target));
+                elements[key].addEventListener('input', (e) => clearInputError(e.target));
+            });
+        };
+
+        /**
+         * Valida input individual
+         */
+        const validateInput = (input) => {
+            const fieldMap = {
+                'clientName': 'name',
+                'clientRef': 'reference',
+                'clientLat': 'latitude',
+                'clientLon': 'longitude'
+            };
+            
+            const field = fieldMap[input.id];
+            const result = Validator.validateField(field, input.value);
+            const errorEl = document.getElementById(`${input.id}Error`);
+
+            if (!result.valid) {
+                input.classList.add('form-input--error');
+                errorEl.textContent = result.message;
+                errorEl.classList.add('form-error--visible');
+            } else {
+                clearInputError(input);
+            }
+
+            return result.valid;
+        };
+
+        /**
+         * Limpa erro de input
+         */
+        const clearInputError = (input) => {
+            input.classList.remove('form-input--error');
+            const errorEl = document.getElementById(`${input.id}Error`);
+            if (errorEl) errorEl.classList.remove('form-error--visible');
+        };
+
+        /**
+         * Handle form submit
+         */
+        const handleFormSubmit = (e) => {
+            e.preventDefault();
+
+            const clientData = {
+                name: elements.nameInput.value,
+                reference: elements.refInput.value,
+                latitude: elements.latInput.value,
+                longitude: elements.lonInput.value
+            };
+
+            const validation = Validator.validateClient(clientData);
+
+            if (!validation.isValid) {
+                // Mostra erros
+                Object.keys(validation.errors).forEach(field => {
+                    const inputMap = {
+                        name: 'nameInput',
+                        reference: 'refInput',
+                        latitude: 'latInput',
+                        longitude: 'lonInput'
+                    };
+                    const input = elements[inputMap[field]];
+                    if (input) {
+                        input.classList.add('form-input--error');
+                        const errorEl = document.getElementById(`${input.id}Error`);
+                        if (errorEl) {
+                            errorEl.textContent = validation.errors[field];
+                            errorEl.classList.add('form-error--visible');
+                        }
+                    }
+                });
+                Toast.error('Corrija os campos destacados');
+                return;
+            }
+
+            // Sanitiza e adiciona
+            const client = Validator.sanitizeClient(clientData);
+            clients.push(client);
+            saveClients();
+
+            // Atualiza UI
+            renderMap();
+            updateStats();
+
+            // Limpa form
+            elements.form.reset();
+            
+            Toast.success(`${client.name} adicionado com sucesso`);
+        };
+
+        /**
+         * Handle my location
+         */
+        const handleMyLocation = () => {
+            if (!navigator.geolocation) {
+                Toast.error('Geolocalização não suportada');
+                return;
+            }
+
+            elements.btnMyLocation.disabled = true;
+            elements.mapLoading.classList.add('loading-overlay--visible');
+
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const { latitude, longitude } = position.coords;
+                    
+                    MapManager.setUserLocation(latitude, longitude);
+                    
+                    // Preenche campos lat/lon
+                    elements.latInput.value = latitude.toFixed(6);
+                    elements.lonInput.value = longitude.toFixed(6);
+                    
+                    updateStats();
+                    elements.btnMyLocation.disabled = false;
+                    elements.mapLoading.classList.remove('loading-overlay--visible');
+                    
+                    Toast.success('Localização obtida');
+                },
+                (error) => {
+                    const messages = {
+                        1: 'Permissão negada. Habilite a localização.',
+                        2: 'Localização indisponível.',
+                        3: 'Tempo esgotado.'
+                    };
+                    Toast.error(messages[error.code] || 'Erro ao obter localização');
+                    elements.btnMyLocation.disabled = false;
+                    elements.mapLoading.classList.remove('loading-overlay--visible');
+                },
+                {
+                    enableHighAccuracy: true,
+                    timeout: 10000,
+                    maximumAge: 0
+                }
+            );
+        };
+
+        /**
+         * Navega até cliente
+         */
+        const navigateToClient = (clientId) => {
+            const client = clients.find(c => c.id === clientId);
+            if (!client) return;
+
+            if (!MapManager.getUserPosition()) {
+                Toast.warning('Ative sua localização para navegar');
+                return;
+            }
+
+            MapManager.createRoute(client);
+        };
+
+        /**
+         * Foca em cliente no mapa
+         */
+        const focusClient = (clientId) => {
+            const client = clients.find(c => c.id === clientId);
+            if (client) {
+                MapManager.focusClient(client.latitude, client.longitude);
+            }
+        };
+
+        /**
+         * Exclui cliente
+         */
+        const deleteClient = async (clientId) => {
+            const client = clients.find(c => c.id === clientId);
+            if (!client) return;
+
+            const confirmed = await Modal.confirm({
+                title: 'Excluir cliente',
+                message: `Deseja realmente excluir "${client.name}"?`,
+                confirmText: 'Excluir',
+                type: 'danger'
+            });
+
+            if (confirmed) {
+                clients = clients.filter(c => c.id !== clientId);
+                saveClients();
+                renderMap();
+                updateStats();
+                Toast.success('Cliente removido');
+            }
+        };
+
+        /**
+         * Renderiza mapa com marcadores
+         */
+        const renderMap = () => {
+            MapManager.clearClientMarkers();
+            clients.forEach(client => {
+                MapManager.addClientMarker(client);
+            });
+            renderClientList();
+        };
+
+        /**
+         * Renderiza lista de clientes
+         */
+        const renderClientList = () => {
+            const search = elements.searchInput.value.toLowerCase().trim();
+            
+            const filtered = clients.filter(c => 
+                c.name.toLowerCase().includes(search) ||
+                c.reference.toLowerCase().includes(search)
+            );
+
+            if (filtered.length === 0) {
+                elements.clientList.innerHTML = `
+                    <div class="client-list__empty">
+                        <i class="fa-solid fa-users-slash client-list__empty-icon" aria-hidden="true"></i>
+                        <p>${search ? 'Nenhum cliente encontrado' : 'Nenhum cliente cadastrado'}</p>
+                    </div>
+                `;
+                return;
+            }
+
+            elements.clientList.innerHTML = filtered.map(client => `
+                <article class="client-card" role="listitem" data-client-id="${client.id}">
+                    <div class="client-card__header">
+                        <h3 class="client-card__name">${escapeHTML(client.name)}</h3>
+                        <span class="client-card__badge">Ativo</span>
+                    </div>
+                    <p class="client-card__reference">${escapeHTML(client.reference)}</p>
+                    <div class="client-card__coords">
+                        LAT: ${client.latitude.toFixed(6)} | LON: ${client.longitude.toFixed(6)}
+                    </div>
+                    <div class="client-card__actions">
+                        <button 
+                            type="button" 
+                            class="btn btn--success btn--icon" 
+                            onclick="App.navigateToClient('${client.id}')"
+                            title="Navegar"
+                            aria-label="Navegar até ${escapeHTML(client.name)}"
+                        >
+                            <i class="fa-solid fa-route" aria-hidden="true"></i>
+                        </button>
+                        <button 
+                            type="button" 
+                            class="btn btn--info btn--icon" 
+                            onclick="App.focusClient('${client.id}')"
+                            title="Localizar no mapa"
+                            aria-label="Localizar ${escapeHTML(client.name)} no mapa"
+                        >
+                            <i class="fa-solid fa-crosshairs" aria-hidden="true"></i>
+                        </button>
+                        <button 
+                            type="button" 
+                            class="btn btn--danger btn--icon" 
+                            onclick="App.deleteClient('${client.id}')"
+                            title="Excluir"
+                            aria-label="Excluir ${escapeHTML(client.name)}"
+                        >
+                            <i class="fa-solid fa-trash" aria-hidden="true"></i>
+                        </button>
+                    </div>
+                </article>
+            `).join('');
+        };
+
+        /**
+         * Atualiza estatísticas
+         */
+        const updateStats = () => {
+            elements.totalClients.textContent = clients.length;
+            
+            const hasGPS = MapManager.getUserPosition() !== null;
+            elements.gpsStatus.textContent = hasGPS ? 'ON' : 'OFF';
+            elements.gpsStatus.className = `stat-card__value ${hasGPS ? '' : 'stat-card__value--warning'}`;
+        };
+
+        /**
+         * Inicia relógio
+         */
+        const startClock = () => {
+            const updateClock = () => {
+                const now = new Date();
+                elements.clock.textContent = now.toLocaleTimeString('pt-BR', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit'
+                });
+            };
+            
+            updateClock();
+            setInterval(updateClock, 1000);
+        };
+
+   
+        return {
+            init,
+            navigateToClient,
+            focusClient,
+            deleteClient
+        };
+    })();
+
+    window.App = App;
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', App.init);
+    } else {
+        App.init();
+    }
+    </script>
 </body>
 </html>
